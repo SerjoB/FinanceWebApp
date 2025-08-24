@@ -1,0 +1,29 @@
+﻿@model IEnumerable<FinanceWebApp.Models.Category>
+
+@{
+    ViewData["Title"] = "Categories";
+}
+<h2>Categories</h2>
+
+<div class="container">
+    <table class="table table-bordered">
+        <thead class="table-light">
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Parent</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Type</td>
+                <td>@item.ParentCategory</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <a asp-action="Create">Add Category</a>
+</div>
