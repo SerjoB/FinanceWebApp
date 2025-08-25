@@ -1,0 +1,25 @@
+﻿@model FinanceWebApp.ViewModels.LoginViewModel
+
+<h2>Login</h2>
+
+<form asp-action="Login" method="post">
+    <div>
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control"/>
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div>
+        <label asp-for="Password" class="form-label"></label>
+        <input asp-for="Password" class="form-control"/>
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+
+    <div>
+        <input asp-for="RememberMe" class="form-control"/>
+        <label asp-for="RememberMe" class="form-label"></label>
+    </div>
+
+    <button type="submit" class="btn-primary">Login</button>
+    <a asp-action="Register">Sign Up</a>
+</form>
