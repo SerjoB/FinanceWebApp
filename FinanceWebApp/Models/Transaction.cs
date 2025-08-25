@@ -10,6 +10,6 @@ public class Transaction
     public string? Description { get; set; }
     public string? Source { get; set; }
 
-    public User User { get; set; } = null!;
+    public ApplicationUser ApplicationUser { get; set; } = null!;
     public Category? Category { get; set; }
 }

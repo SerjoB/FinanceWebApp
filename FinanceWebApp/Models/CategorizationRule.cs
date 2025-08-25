@@ -9,6 +9,6 @@ public class CategorizationRule
     public string MatchText { get; set; } = null!;
     public int CategoryId { get; set; }
 
-    public User User { get; set; } = null!;
+    public ApplicationUser ApplicationUser { get; set; } = null!;
     public Category Category { get; set; } = null!;
 }

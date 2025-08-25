@@ -1,55 +1,61 @@
-﻿using System.Security.Claims;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using FinanceWebApp.Data.Service;
 using FinanceWebApp.Models;
 using FinanceWebApp.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace FinanceWebApp.Controllers;
+[Authorize]
 public class CategoriesController: Controller
 {
     ICategoryService  _categoryService;
-
-    public CategoriesController(ICategoryService categoryService)
+    private readonly UserManager<ApplicationUser> _userManager;
+    public CategoriesController(ICategoryService categoryService, UserManager<ApplicationUser> userManager)
     {
         _categoryService = categoryService;
+        _userManager = userManager;
     }
     public async Task<IActionResult> Index()
     { 
         var categories = await _categoryService.GetAll();
+        
+
         return View(categories);
     }
     
     //POST
-    [HttpPost]
-    public async Task<IActionResult> Create(Category category)
-    {
-        if (ModelState.IsValid)
-        {
-            await _categoryService.Add(category);
-            return RedirectToAction(nameof(Index));
-        }
-        return View();// it returns empty CreateModel instead our view
-    }
-    
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CategoryCreateViewModel model)
     {
         if (ModelState.IsValid)
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var user = await _userManager.GetUserAsync(User);
             var category = new Category
             {
                 Name = model.Name,
                 Type = model.Type,
                 ParentCategoryId = model.ParentCategoryId,
-                UserId = userId
+                UserId = user.Id
             };
-
-            await _categoryService.Add(category);
-            return RedirectToAction(nameof(Index));
+            
+            var context = new ValidationContext(category);
+            var results = new List<ValidationResult>();
+            if (Validator.TryValidateObject(category, context, results, true))
+            {
+                await _categoryService.Add(category);
+                return RedirectToAction(nameof(Index));
+            }
+            
+            foreach (var validationResult in results)
+            {
+                if (validationResult.ErrorMessage != null)
+                    ModelState.AddModelError("", validationResult.ErrorMessage);
+            }
         }
 
         // If validation fails, reload dropdowns

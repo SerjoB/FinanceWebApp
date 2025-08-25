@@ -20,7 +20,7 @@
             <tr>
                 <td>@item.Name</td>
                 <td>@item.Type</td>
-                <td>@item.ParentCategory</td>
+                <td>@(item.ParentCategory?.Name ?? "—")</td>
             </tr>
         }
         </tbody>
