@@ -7,15 +7,23 @@ namespace FinanceWebApp.Data.Service;
 public class CategoryService: ICategoryService
 {
     private FinanceAppDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-
-    public CategoryService(FinanceAppDbContext context)
+    public CategoryService(FinanceAppDbContext context,
+        UserManager<ApplicationUser> userManager,
+        IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
+        _userManager = userManager;
+        _httpContextAccessor = httpContextAccessor;
     }
     public async Task<IEnumerable<Category>> GetAll()
     {
-        var categories = await _context.Categories.Include(c => c.ParentCategory).ToListAsync();   //TODO make them to be selected by user
+        var user = await GetCurrentUserAsync();
+        var categories = await _context.Categories.Include(c => c.ParentCategory)
+            .Where(c => c.UserId == user.Id)
+            .ToListAsync(); 
         return categories;  
     }
 
@@ -25,5 +33,13 @@ public class CategoryService: ICategoryService
         await _context.SaveChangesAsync();
     }
 
+    public async Task<ApplicationUser?> GetCurrentUserAsync()
+    {
+        var user = _httpContextAccessor.HttpContext?.User;
+        if (user == null)
+            return null;
+
+        return await _userManager.GetUserAsync(user);
+    }
     
 }

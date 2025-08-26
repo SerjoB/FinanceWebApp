@@ -13,11 +13,9 @@ namespace FinanceWebApp.Controllers;
 public class CategoriesController: Controller
 {
     ICategoryService  _categoryService;
-    private readonly UserManager<ApplicationUser> _userManager;
-    public CategoriesController(ICategoryService categoryService, UserManager<ApplicationUser> userManager)
+    public CategoriesController(ICategoryService categoryService)
     {
         _categoryService = categoryService;
-        _userManager = userManager;
     }
     public async Task<IActionResult> Index()
     { 
@@ -34,13 +32,13 @@ public class CategoriesController: Controller
     {
         if (ModelState.IsValid)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await _categoryService.GetCurrentUserAsync();
             var category = new Category
             {
                 Name = model.Name,
                 Type = model.Type,
                 ParentCategoryId = model.ParentCategoryId,
-                UserId = user.Id
+                UserId = user!.Id
             };
             
             var context = new ValidationContext(category);
