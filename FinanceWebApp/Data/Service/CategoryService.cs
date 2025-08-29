@@ -1,4 +1,5 @@
 ﻿using FinanceWebApp.Models;
+using FinanceWebApp.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,9 +28,47 @@ public class CategoryService: ICategoryService
         return categories;  
     }
 
+    public async Task<Category?> GetCategoryByIdAsync(int id, QueryOptions<Category> options)
+    {
+        IQueryable<Category> query = _context.Set<Category>();
+        if (options.HasWhere())
+        {
+            query = query.Where(options.Where);
+        }
+
+        foreach(var include in options.GetIncludes())
+        {
+            query = query.Include(include);
+        }
+        
+        var user = await GetCurrentUserAsync();
+        return await query
+            .FirstOrDefaultAsync(c => c.CategoryId == id && c.UserId == user.Id);
+    }
+
     public async Task Add(Category category)
     {
         _context.Categories.Add(category);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task Update(CategoryCreateViewModel model ,int categoryId)
+    {
+        var category = await GetCategoryByIdAsync(categoryId, new QueryOptions<Category>());
+        category.Name = model.Name;
+        category.Type = model.Type;
+        category.ParentCategoryId = model.ParentCategoryId;
+
+        _context.Update(category);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task Delete(int id)
+    {
+        var category = await GetCategoryByIdAsync(id, new QueryOptions<Category>());
+        if (category == null)
+            return;
+        _context.Remove(category);
         await _context.SaveChangesAsync();
     }
 

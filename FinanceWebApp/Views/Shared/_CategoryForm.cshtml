@@ -1,0 +1,27 @@
+﻿@model FinanceWebApp.ViewModels.CategoryCreateViewModel
+
+<div class="container">
+    <form asp-action="@ViewData["Action"]" method="post">
+        <div>
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control"></input>
+        </div>
+        <div>
+            <label asp-for="Type" class="form-label"></label>
+            <select asp-for="Type" class="form-control"
+                    asp-items="Model.CategoryTypes">
+                <option value="">Select Type</option>
+            </select>
+            <span asp-validation-for="Type" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="ParentCategoryId" class="form-label"></label>
+            <select asp-for="ParentCategoryId" class="form-control"
+                    asp-items="Model.ParentCategories">
+                <option value="">No Parent Category</option>
+            </select>
+            <span asp-validation-for="ParentCategoryId" class="text-danger"></span>
+        </div>
+        <button type="submit" class="btn btn-primary">@ViewData["ButtonText"]</button>
+    </form>
+</div>

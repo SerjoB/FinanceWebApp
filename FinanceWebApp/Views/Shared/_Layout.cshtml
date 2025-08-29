@@ -37,6 +37,13 @@
         @RenderBody()
     </main>
 </div>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+}
+
 
 <footer class="border-top footer text-muted">
     <div class="container">

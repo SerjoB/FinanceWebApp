@@ -21,6 +21,14 @@
                 <td>@item.Name</td>
                 <td>@item.Type</td>
                 <td>@(item.ParentCategory?.Name ?? "—")</td>
+                <td>
+                    <a class="btn btn-info" asp-action="Update" asp-route-id="@item.CategoryId">
+                        <i class="bi">Edit</i>
+                    </a>
+                    <a class="btn btn-danger" asp-action="Delete" asp-route-id="@item.CategoryId">
+                        <i class="bi">Delete</i>
+                    </a>
+                </td>
             </tr>
         }
         </tbody>
