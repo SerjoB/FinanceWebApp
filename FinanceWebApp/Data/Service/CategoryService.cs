@@ -1,4 +1,5 @@
-﻿using FinanceWebApp.Models;
+﻿using FinanceWebApp.Data.Service.Models;
+using FinanceWebApp.Models;
 using FinanceWebApp.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +34,7 @@ public class CategoryService: ICategoryService
         IQueryable<Category> query = _context.Set<Category>();
         if (options.HasWhere())
         {
-            query = query.Where(options.Where);
+            query = query.Where(options.Where!);
         }
 
         foreach(var include in options.GetIncludes())
@@ -42,34 +43,77 @@ public class CategoryService: ICategoryService
         }
         
         var user = await GetCurrentUserAsync();
+        if(user == null)
+            return null;
+        
         return await query
             .FirstOrDefaultAsync(c => c.CategoryId == id && c.UserId == user.Id);
     }
 
-    public async Task Add(Category category)
+    public async Task<ServiceResult> Add(Category category)
     {
-        _context.Categories.Add(category);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _context.Categories.Add(category);
+            await _context.SaveChangesAsync();
+            return ServiceResult.Ok();
+            
+        }
+        catch (DbUpdateException ex)
+        {
+            Console.WriteLine(ex);
+            return ServiceResult.Fail("Database error occurred while creating category.");
+        }
+        catch (Exception ex)
+        {
+            return ServiceResult.Fail($"Unexpected error: {ex.Message}");
+        }
+        
     }
 
-    public async Task Update(CategoryCreateViewModel model ,int categoryId)
+    public async Task<ServiceResult> Update(CategoryCreateViewModel model ,int categoryId)
     {
         var category = await GetCategoryByIdAsync(categoryId, new QueryOptions<Category>());
+        if (category == null)
+            return ServiceResult.Fail("Category not found.");
         category.Name = model.Name;
         category.Type = model.Type;
         category.ParentCategoryId = model.ParentCategoryId;
 
-        _context.Update(category);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _context.Update(category);
+            await _context.SaveChangesAsync();
+            return ServiceResult.Ok();
+        }
+        catch (DbUpdateException ex)
+        {
+            Console.WriteLine(ex);
+            return ServiceResult.Fail("Database error occurred while Updating category.");
+        }
+        catch (Exception ex)
+        {
+            return ServiceResult.Fail($"Unexpected error: {ex.Message}");
+        }
     }
 
-    public async Task Delete(int id)
+    public async Task<ServiceResult> Delete(Category category)
     {
-        var category = await GetCategoryByIdAsync(id, new QueryOptions<Category>());
-        if (category == null)
-            return;
-        _context.Remove(category);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _context.Remove(category);
+            await _context.SaveChangesAsync();
+            return ServiceResult.Ok();
+        }
+        catch (DbUpdateException ex)
+        {
+            Console.WriteLine(ex);
+            return ServiceResult.Fail("Database error occurred while Deleting category.");
+        }
+        catch (Exception ex)
+        {
+            return ServiceResult.Fail($"Unexpected error: {ex.Message}");
+        }
     }
 
     public async Task<ApplicationUser?> GetCurrentUserAsync()

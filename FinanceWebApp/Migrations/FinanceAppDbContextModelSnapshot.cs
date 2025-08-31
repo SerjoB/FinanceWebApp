@@ -129,7 +129,7 @@ namespace FinanceWebApp.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int?>("ParentCategoryId")
+                    b.Property<int>("ParentCategoryId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Type")
@@ -146,6 +146,16 @@ namespace FinanceWebApp.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Categories");
+
+                    b.HasData(
+                        new
+                        {
+                            CategoryId = 1,
+                            Name = "Uncategorized",
+                            ParentCategoryId = 1,
+                            Type = "None",
+                            UserId = 3
+                        });
                 });
 
             modelBuilder.Entity("FinanceWebApp.Models.Transaction", b =>
@@ -339,7 +349,8 @@ namespace FinanceWebApp.Migrations
                     b.HasOne("FinanceWebApp.Models.Category", "ParentCategory")
                         .WithMany("Subcategories")
                         .HasForeignKey("ParentCategoryId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("FinanceWebApp.Models.ApplicationUser", "ApplicationUser")
                         .WithMany("Categories")

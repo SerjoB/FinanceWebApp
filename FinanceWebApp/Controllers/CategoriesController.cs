@@ -1,11 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.Security.Claims;
 using FinanceWebApp.Data.Service;
 using FinanceWebApp.Models;
 using FinanceWebApp.ViewModels;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +11,7 @@ namespace FinanceWebApp.Controllers;
 [Authorize]
 public class CategoriesController: Controller   //TODO find out how to handle possible null data from db (variables) and fix it everywhere
 {
-    ICategoryService  _categoryService;
+    readonly ICategoryService _categoryService;
     public CategoriesController(ICategoryService categoryService)
     {
         _categoryService = categoryService;
@@ -25,7 +22,7 @@ public class CategoriesController: Controller   //TODO find out how to handle po
         return View(categories);
     }
     //  GET
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create()   //TODO: Add Validation Parent-Type. So if parent of type "Expenses" category must be "Expenses"
     {
         var categories = await _categoryService.GetAll();
         var model = new CategoryCreateViewModel
@@ -53,7 +50,11 @@ public class CategoriesController: Controller   //TODO find out how to handle po
         var category =  await CategoryValidator(model);
         if (category != null)
         {
-            await _categoryService.Add(category);
+            var result = await _categoryService.Add(category);
+            if (!result.Success)
+            {
+                TempData["Error"] = result.ErrorMessage;
+            }
             return RedirectToAction(nameof(Index));
         }
         
@@ -73,12 +74,13 @@ public class CategoriesController: Controller   //TODO find out how to handle po
         return View(model);
     }
     
-    
+    //  GET
     public async Task<IActionResult> Update(int id)
     {
         var categories = await _categoryService.GetAll();
-        var category = categories.FirstOrDefault(c => c.CategoryId == id);
-        
+        var category = await _categoryService.GetCategoryByIdAsync(id, new QueryOptions<Category>());
+        if(category == null)
+            return NotFound();
         var model = new CategoryCreateViewModel
         {
             CategoryTypes = new List<SelectListItem>
@@ -106,7 +108,11 @@ public class CategoriesController: Controller   //TODO find out how to handle po
     {
         if (ModelState.IsValid)
         {
-            await _categoryService.Update(model, id);
+            var result = await _categoryService.Update(model, id);
+            if (!result.Success)
+            {
+                TempData["Error"] = result.ErrorMessage;
+            }
             return RedirectToAction(nameof(Index));
         }
         
@@ -114,7 +120,8 @@ public class CategoriesController: Controller   //TODO find out how to handle po
         // If validation fails, reload dropdowns
         var categories = await _categoryService.GetAll();
         var currentCategory = await _categoryService.GetCategoryByIdAsync(id, new QueryOptions<Category>());
-        
+        if (currentCategory == null)
+            return NotFound();
         var currentModel = new CategoryCreateViewModel
         {
             CategoryTypes = new List<SelectListItem>
@@ -159,12 +166,15 @@ public class CategoriesController: Controller   //TODO find out how to handle po
             {
                 foreach (var child in category.Subcategories)
                 {
-                    child.ParentCategoryId = null; // or reassign to "Uncategorized"
+                    child.ParentCategoryId = 1; // or reassign to "Uncategorized"
                 }
-
-                category.Subcategories.Clear();
-
-                await _categoryService.Delete(id);
+                //
+                // category.Subcategories.Clear();
+                var result = await _categoryService.Delete(category);
+                if (!result.Success)
+                {
+                    TempData["Error"] = result.ErrorMessage;
+                }
                 break;
             }
             case "cascade":
@@ -184,7 +194,7 @@ public class CategoriesController: Controller   //TODO find out how to handle po
 
         try
         { 
-            await _categoryService.Delete(category.CategoryId);
+            await _categoryService.Delete(category);
         }
         catch (InvalidOperationException  ex)
         {
@@ -194,12 +204,14 @@ public class CategoriesController: Controller   //TODO find out how to handle po
         {
             // Database error (constraint violation, etc.)
             TempData["Error"] = "Unable to delete category due to database constraints.";
+            Console.WriteLine(ex);
             // log ex for developers
         }
         catch (Exception ex)
         {
             // Unexpected errors
             TempData["Error"] = "Unexpected error occurred.";
+            Console.WriteLine(ex);
             // log ex for developers
         }
     }

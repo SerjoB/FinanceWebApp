@@ -12,7 +12,7 @@ public class Category
     public string Name { get; set; } = null!;
     [Required]
     public string Type { get; set; } = null!; // "Income" or "Expense"
-    public int? ParentCategoryId { get; set; }
+    public int ParentCategoryId { get; set; }
 
     public ApplicationUser ApplicationUser { get; set; } = null!;
     public Category? ParentCategory { get; set; }

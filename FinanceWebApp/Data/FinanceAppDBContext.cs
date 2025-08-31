@@ -25,12 +25,22 @@ public class FinanceAppDbContext: IdentityDbContext<ApplicationUser, IdentityRol
             .HasForeignKey(c => c.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Category -> ParentCategory (self-reference, optional)
+        
         modelBuilder.Entity<Category>()
             .HasOne(c => c.ParentCategory)
             .WithMany(c => c.Subcategories)
             .HasForeignKey(c => c.ParentCategoryId)
             .OnDelete(DeleteBehavior.Restrict); // prevent cascade delete cycles
+        // Category -> ParentCategory (self-reference, optional)
+        modelBuilder.Entity<Category>()
+            .HasData(new Category
+            {
+                Name = "Uncategorized",
+                Type = "None",
+                CategoryId = 1,
+                ParentCategoryId = 1,
+                UserId = 3  //TODO: Change it to admin ID or something
+            });
 
         // ---------------------------
         // Transaction -> ApplicationUser (many-to-1)
