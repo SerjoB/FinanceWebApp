@@ -1,5 +1,4 @@
 ﻿@model IEnumerable<FinanceWebApp.Models.Category>
-
 @{
     ViewData["Title"] = "Categories";
 }
@@ -34,4 +33,10 @@
         </tbody>
     </table>
     <a asp-action="Create">Add Category</a>
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["ErrorMessage"]
+        </div>
+    }
 </div>

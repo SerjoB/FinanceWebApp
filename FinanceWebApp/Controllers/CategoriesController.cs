@@ -8,8 +8,10 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceWebApp.Controllers;
+// TODO Change flat list of categories to a dropdown tree
+// TODO Show user friendly messages instead just errors
 [Authorize]
-public class CategoriesController: Controller   //TODO find out how to handle possible null data from db (variables) and fix it everywhere
+public class CategoriesController: Controller
 {
     readonly ICategoryService _categoryService;
     public CategoriesController(ICategoryService categoryService)
@@ -45,7 +47,7 @@ public class CategoriesController: Controller   //TODO find out how to handle po
     //POST
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(CategoryCreateViewModel model)
+    public async Task<IActionResult> Create(CategoryCreateViewModel model)  // TODO: When parent category is selected force Type of category and disable Type field
     {
         var category =  await CategoryValidator(model);
         if (category != null)
@@ -81,6 +83,7 @@ public class CategoriesController: Controller   //TODO find out how to handle po
         var category = await _categoryService.GetCategoryByIdAsync(id, new QueryOptions<Category>());
         if(category == null)
             return NotFound();
+        var descendantsIds = await _categoryService.GetAllDescendantsIdsAsync(category.CategoryId);
         var model = new CategoryCreateViewModel
         {
             CategoryTypes = new List<SelectListItem>
@@ -88,7 +91,7 @@ public class CategoriesController: Controller   //TODO find out how to handle po
                 new SelectListItem { Value = "Expense", Text = "Expense" },
                 new SelectListItem { Value = "Income", Text = "Income" }
             },
-            ParentCategories = categories.Where(c => c.CategoryId != id).Select(c => new SelectListItem
+            ParentCategories = categories.Where(c => c.CategoryId != id && !descendantsIds.Contains(c.CategoryId)).Select(c => new SelectListItem
             {
                 Value = c.CategoryId.ToString(),
                 Text = c.Name
@@ -106,6 +109,11 @@ public class CategoriesController: Controller   //TODO find out how to handle po
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Update(CategoryCreateViewModel model, int id)
     {
+        var user = await _categoryService.GetCurrentUserAsync();
+        if (await _categoryService.CategoryExistsAsync(model.Name, user.Id, model.ParentCategoryId, id))
+        {
+            ModelState.AddModelError("Name", "Category name must be unique.");
+        }
         if (ModelState.IsValid)
         {
             var result = await _categoryService.Update(model, id);
@@ -122,6 +130,7 @@ public class CategoriesController: Controller   //TODO find out how to handle po
         var currentCategory = await _categoryService.GetCategoryByIdAsync(id, new QueryOptions<Category>());
         if (currentCategory == null)
             return NotFound();
+        var descendantsIds = await _categoryService.GetAllDescendantsIdsAsync(currentCategory.CategoryId);
         var currentModel = new CategoryCreateViewModel
         {
             CategoryTypes = new List<SelectListItem>
@@ -129,7 +138,7 @@ public class CategoriesController: Controller   //TODO find out how to handle po
                 new SelectListItem { Value = "Expense", Text = "Expense" },
                 new SelectListItem { Value = "Income", Text = "Income" }
             },
-            ParentCategories = categories.Where(c => c.CategoryId != id).Select(c => new SelectListItem
+            ParentCategories = categories.Where(c => c.CategoryId != id && !descendantsIds.Contains(id)).Select(c => new SelectListItem
             {
                 Value = c.CategoryId.ToString(),
                 Text = c.Name
@@ -157,6 +166,11 @@ public class CategoriesController: Controller   //TODO find out how to handle po
     {
         var category = await _categoryService.GetCategoryByIdAsync(id, new QueryOptions<Category>() {Includes = "Subcategories"});
 
+        if (id == 1) 
+        {
+            TempData["ErrorMessage"] = "The 'Uncategorized' category cannot be deleted.";
+            return RedirectToAction(nameof(Index));
+        }
         if (category == null)
             return NotFound();
 
@@ -219,8 +233,12 @@ public class CategoriesController: Controller   //TODO find out how to handle po
 
     private async Task<Category?> CategoryValidator(CategoryCreateViewModel model)  // TODO: should look into it. I am not sure i need it anymore. Possibly just change it for better look
     {
-        if (!ModelState.IsValid) return null;
         var user = await _categoryService.GetCurrentUserAsync();
+        if (await _categoryService.CategoryExistsAsync(model.Name, user.Id, model.ParentCategoryId))
+        {
+            ModelState.AddModelError("Name", "Category name must be unique.");
+        }
+        if (!ModelState.IsValid) return null;
         var category = new Category
         {
             Name = model.Name,
@@ -228,7 +246,8 @@ public class CategoriesController: Controller   //TODO find out how to handle po
             ParentCategoryId = model.ParentCategoryId,
             UserId = user!.Id
         };
-            
+       
+
         var context = new ValidationContext(category);
         var results = new List<ValidationResult>();
         return Validator.TryValidateObject(category, context, results) ? category : null;

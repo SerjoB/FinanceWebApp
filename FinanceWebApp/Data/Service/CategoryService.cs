@@ -3,6 +3,7 @@ using FinanceWebApp.Models;
 using FinanceWebApp.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace FinanceWebApp.Data.Service;
 
@@ -28,13 +29,41 @@ public class CategoryService: ICategoryService
             .ToListAsync(); 
         return categories;  
     }
+    
+    public async Task<IEnumerable<Category>> GetAllWithOptions(QueryOptions<Category> options)
+    {
+        IQueryable<Category> query = _context.Set<Category>();
+        if (options.HasFilter())
+        {
+            query = query.Where(options.Filter!);
+        }
+
+        foreach(var include in options.GetIncludes())
+        {
+            query = query.Include(include);
+        }
+        
+        var user = await GetCurrentUserAsync();
+        if(user == null)
+            return null;
+ 
+        var categories = await query
+            .ToListAsync(); 
+        return categories;  
+    }
 
     public async Task<Category?> GetCategoryByIdAsync(int id, QueryOptions<Category> options)
     {
+        options.Filter = c => c.CategoryId == id;
+        return await GetCategoryAsync(options);
+    }
+
+    public async Task<Category?> GetCategoryAsync(QueryOptions<Category> options)
+    {
         IQueryable<Category> query = _context.Set<Category>();
-        if (options.HasWhere())
+        if (options.HasFilter())
         {
-            query = query.Where(options.Where!);
+            query = query.Where(options.Filter!);
         }
 
         foreach(var include in options.GetIncludes())
@@ -47,7 +76,35 @@ public class CategoryService: ICategoryService
             return null;
         
         return await query
-            .FirstOrDefaultAsync(c => c.CategoryId == id && c.UserId == user.Id);
+            .FirstOrDefaultAsync(c => c.UserId == user.Id);
+    }
+
+    public async Task<List<int>?> GetAllDescendantsIdsAsync(int categoryId) // TODO: this doesn't work good with big hierarchies, so it must be replaced with a non-recursive query using a CTE or caching the tree in memory
+    {
+        List<int> result = new List<int>();
+        var currentCategory = await GetCategoryByIdAsync(categoryId, new QueryOptions<Category>() {Includes = "Subcategories"});
+        if(currentCategory == null)
+            return result;
+        
+        foreach (var child in currentCategory.Subcategories)
+        {
+            result.Add(child.CategoryId);
+            result.AddRange(await GetAllDescendantsIdsAsync(child.CategoryId));
+        }
+        return result;
+    }
+
+    public async Task<bool> CategoryExistsAsync(string name, int userId, int parentCategoryId, int? excludeCategoryId = null)
+    {
+        IQueryable<Category> query = _context.Categories
+            .Where(c => c.UserId == userId && c.Name == name && c.ParentCategoryId == parentCategoryId);
+
+        if (excludeCategoryId.HasValue)
+        {
+            query = query.Where(c => c.CategoryId != excludeCategoryId.Value);
+        }
+
+        return await query.AnyAsync();
     }
 
     public async Task<ServiceResult> Add(Category category)
