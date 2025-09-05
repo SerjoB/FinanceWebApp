@@ -1,38 +1,33 @@
-﻿@model IEnumerable<FinanceWebApp.Models.Category>
+﻿@model List<FinanceWebApp.ViewModels.CategoryTreeViewModel>
 @{
     ViewData["Title"] = "Categories";
 }
 <h2>Categories</h2>
 
-<div class="container">
-    <table class="table table-bordered">
-        <thead class="table-light">
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Parent</th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var item in Model)
+<div class="category-section">
+    <h2>Income</h2>
+    <ul class="category-tree">
+        @foreach (var category in Model.Where(c => c.Type == "Income"))
         {
-            <tr>
-                <td>@item.Name</td>
-                <td>@item.Type</td>
-                <td>@(item.ParentCategory?.Name ?? "—")</td>
-                <td>
-                    <a class="btn btn-info" asp-action="Update" asp-route-id="@item.CategoryId">
-                        <i class="bi">Edit</i>
-                    </a>
-                    <a class="btn btn-danger" asp-action="Delete" asp-route-id="@item.CategoryId">
-                        <i class="bi">Delete</i>
-                    </a>
-                </td>
-            </tr>
+            @Html.Partial("_CategoryTreeNode", category)
         }
-        </tbody>
-    </table>
-    <a asp-action="Create">Add Category</a>
+    </ul>
+</div>
+
+<div class="category-section">
+    <h2>Expenses</h2>
+    <ul class="category-tree">
+        @foreach (var category in Model.Where(c => c.Type == "Expense"))
+        {
+            @Html.Partial("_CategoryTreeNode", category)
+        }
+    </ul>
+</div>
+
+<div>
+    <a class="btn btn-info" asp-action="Create">
+        <i class="bi">Create</i>
+    </a>
     @if (TempData["ErrorMessage"] != null)
     {
         <div class="alert alert-danger">

@@ -8,20 +8,23 @@
             <span asp-validation-for="Name" class="text-danger"></span>
         </div>
         <div>
+            <label asp-for="ParentCategoryId" class="form-label"></label>
+            <select asp-for="ParentCategoryId" class="form-control" id="ParentCategory">
+                <option value="1">Uncategorized</option>
+                @foreach (var parent in Model.ParentCategories)
+                {
+                    <option value="@parent.Id" data-type="@parent.Type">@parent.Name</option>
+                }
+            </select>
+            <span asp-validation-for="ParentCategoryId" class="text-danger"></span>
+        </div>
+        <div>
             <label asp-for="Type" class="form-label"></label>
-            <select asp-for="Type" class="form-control"
+            <select asp-for="Type" class="form-control" id="CategoryType"
                     asp-items="Model.CategoryTypes">
                 <option value="">Select Type</option>
             </select>
             <span asp-validation-for="Type" class="text-danger"></span>
-        </div>
-        <div>
-            <label asp-for="ParentCategoryId" class="form-label"></label>
-            <select asp-for="ParentCategoryId" class="form-control"
-                    asp-items="Model.ParentCategories">
-                <option value="1">Uncategorized</option>
-            </select>
-            <span asp-validation-for="ParentCategoryId" class="text-danger"></span>
         </div>
         <button type="submit" class="btn btn-primary">@ViewData["ButtonText"]</button>
     </form>

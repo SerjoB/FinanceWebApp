@@ -48,6 +48,7 @@ public class CategoryService: ICategoryService
             return null;
  
         var categories = await query
+            .Where(c => c.UserId == user.Id)
             .ToListAsync(); 
         return categories;  
     }

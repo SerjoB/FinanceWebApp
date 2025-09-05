@@ -1,0 +1,68 @@
+﻿/* Section separation */
+.category-section {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.category-section h2 {
+    margin-bottom: 1rem;
+    font-size: 1.4rem;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 0.5rem;
+}
+
+/* Tree styling */
+.category-tree,
+.subcategory-list {
+    list-style: none;
+    padding-left: 1.2rem;
+    margin: 0;
+}
+
+.category-tree li {
+    margin: 0.4rem 0;
+    position: relative;
+}
+
+/* Toggle area */
+.tree-toggle {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* Arrow icon */
+.toggle-icon {
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+}
+
+.toggle-icon.open {
+    transform: rotate(90deg);
+}
+
+/* Actions (Edit/Delete) */
+.tree-actions {
+    margin-left: 1rem;
+    font-size: 0.9rem;
+}
+
+.tree-actions a {
+    margin: 0 0.3rem;
+    text-decoration: none;
+}
+
+
+/* Hidden children */
+.subcategory-list {
+    display: none;
+    margin-left: 1rem;
+}
+
+.subcategory-list.open {
+    display: block;
+}

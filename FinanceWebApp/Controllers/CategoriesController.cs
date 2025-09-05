@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceWebApp.Controllers;
-// TODO Change flat list of categories to a dropdown tree
 // TODO Show user friendly messages instead just errors
 [Authorize]
 public class CategoriesController: Controller
@@ -19,25 +18,28 @@ public class CategoriesController: Controller
         _categoryService = categoryService;
     }
     public async Task<IActionResult> Index()
-    { 
-        var categories = await _categoryService.GetAll();
-        return View(categories);
+    {
+        var tree = await GetCategoryTreeAsync();
+        return View(tree);
     }
     //  GET
-    public async Task<IActionResult> Create()   //TODO: Add Validation Parent-Type. So if parent of type "Expenses" category must be "Expenses"
+    public async Task<IActionResult> Create()
     {
         var categories = await _categoryService.GetAll();
         var model = new CategoryCreateViewModel
         {
-            CategoryTypes = new List<SelectListItem>
+           CategoryTypes = Enum.GetValuesAsUnderlyingType<CategoryType>()
+            .Cast<CategoryType>()
+            .Select(t => new SelectListItem
             {
-                new SelectListItem { Value = "Expense", Text = "Expense" },
-                new SelectListItem { Value = "Income", Text = "Income" }
-            },
-            ParentCategories = categories.Select(c => new SelectListItem
+                Value = t.ToString(),
+                Text = t.ToString()
+            }),
+            ParentCategories = categories.Select(c => new ParentCategoryOption
             {
-                Value = c.CategoryId.ToString(),
-                Text = c.Name
+                Id = c.CategoryId,
+                Name = c.Name,
+                Type = c.Type
             })
         };
 
@@ -47,7 +49,7 @@ public class CategoriesController: Controller
     //POST
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(CategoryCreateViewModel model)  // TODO: When parent category is selected force Type of category and disable Type field
+    public async Task<IActionResult> Create(CategoryCreateViewModel model)
     {
         var category =  await CategoryValidator(model);
         if (category != null)
@@ -61,18 +63,20 @@ public class CategoriesController: Controller
         }
         
         // If validation fails, reload dropdowns
-        model.CategoryTypes = new List<SelectListItem>
-        {
-            new SelectListItem { Value = "Expense", Text = "Expense" },
-            new SelectListItem { Value = "Income", Text = "Income" }
-        };
+        model.CategoryTypes = Enum.GetValuesAsUnderlyingType<CategoryType>()
+            .Cast<CategoryType>()
+            .Select(t => new SelectListItem
+            {
+                Value = t.ToString(),
+                Text = t.ToString()
+            });
         var categories = await _categoryService.GetAll();
-        model.ParentCategories = categories.Select(c => new SelectListItem
+        model. ParentCategories = categories.Select(c => new ParentCategoryOption
         {
-            Value = c.CategoryId.ToString(),
-            Text = c.Name
+            Id = c.CategoryId,
+            Name = c.Name,
+            Type = c.Type
         });
-
         return View(model);
     }
     
@@ -91,10 +95,11 @@ public class CategoriesController: Controller
                 new SelectListItem { Value = "Expense", Text = "Expense" },
                 new SelectListItem { Value = "Income", Text = "Income" }
             },
-            ParentCategories = categories.Where(c => c.CategoryId != id && !descendantsIds.Contains(c.CategoryId)).Select(c => new SelectListItem
+            ParentCategories = categories.Where(c => c.CategoryId != id && !descendantsIds.Contains(c.CategoryId)).Select(c => new ParentCategoryOption
             {
-                Value = c.CategoryId.ToString(),
-                Text = c.Name
+                Id = c.CategoryId,
+                Name = c.Name,
+                Type = c.Type
             }),
             Name = category.Name,
             Type = category.Type,
@@ -138,10 +143,11 @@ public class CategoriesController: Controller
                 new SelectListItem { Value = "Expense", Text = "Expense" },
                 new SelectListItem { Value = "Income", Text = "Income" }
             },
-            ParentCategories = categories.Where(c => c.CategoryId != id && !descendantsIds.Contains(id)).Select(c => new SelectListItem
+            ParentCategories = categories.Where(c => c.CategoryId != id && !descendantsIds.Contains(c.CategoryId)).Select(c => new ParentCategoryOption
             {
-                Value = c.CategoryId.ToString(),
-                Text = c.Name
+                Id = c.CategoryId,
+                Name = c.Name,
+                Type = c.Type
             }),
             Name = currentCategory.Name,
             Type = currentCategory.Type
@@ -251,5 +257,28 @@ public class CategoriesController: Controller
         var context = new ValidationContext(category);
         var results = new List<ValidationResult>();
         return Validator.TryValidateObject(category, context, results) ? category : null;
+    }
+    
+    public async Task<List<CategoryTreeViewModel>> GetCategoryTreeAsync()
+    {
+        var categories =
+            await _categoryService.GetAllWithOptions(new QueryOptions<Category>() { Includes = "Subcategories" });
+
+        // Find root categories (those with no parent)
+        var roots = categories
+            .Where(c => c.ParentCategoryId == 1)
+            .ToList();
+        return roots.Select(c => MapToTree(c)).ToList();
+    }
+
+    private CategoryTreeViewModel MapToTree(Category category)
+    {
+        return new CategoryTreeViewModel
+        {
+            CategoryId = category.CategoryId,
+            Name = category.Name,
+            Type = category.Type,
+            Subcategories = category.Subcategories.Select(MapToTree).ToList()
+        };
     }
 }

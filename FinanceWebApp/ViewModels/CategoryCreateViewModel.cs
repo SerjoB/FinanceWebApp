@@ -13,5 +13,18 @@ public class CategoryCreateViewModel
     [ValidateNever]
     public IEnumerable<SelectListItem> CategoryTypes { get; set; }
     [ValidateNever]
-    public IEnumerable<SelectListItem> ParentCategories { get; set; }
+    public IEnumerable<ParentCategoryOption> ParentCategories { get; set; }
+}
+
+public class ParentCategoryOption
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string Type { get; set; } // "Income" or "Expense"
+}
+
+public enum CategoryType
+{
+    Income,
+    Expense
 }

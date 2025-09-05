@@ -1,0 +1,44 @@
+﻿@model FinanceWebApp.ViewModels.CategoryTreeViewModel
+
+<li>
+    <div class="tree-toggle">
+        @if (Model.Subcategories.Any())
+        {
+            <span class="toggle-icon">▶</span>
+        }
+        else
+        {
+            <span class="toggle-icon">•</span>
+        }
+        <span class="category-name">@Model.Name</span>
+
+        <span class="tree-actions">
+            <a class="btn btn-info" asp-action="Update" asp-route-id="@Model.CategoryId">
+                <i class="bi">Edit</i>
+            </a>
+            <a class="btn btn-danger" asp-action="Delete" asp-route-id="@Model.CategoryId">
+                <i class="bi">Delete</i>
+            </a>
+        </span>
+    </div>
+
+    @if (Model.Subcategories.Any())
+    {
+        <ul class="subcategory-list">
+            @foreach (var sub in Model.Subcategories)
+            {
+                @Html.Partial("_CategoryTreeNode", sub)
+            }
+        </ul>
+    }
+</li>
+
+
+@* <span class="tree-actions"> *@
+@*     <a class="btn btn-info" asp-action="Update" asp-route-id="@Model.CategoryId"> *@
+@*         <i class="bi">Edit</i> *@
+@*     </a> *@
+@*     <a class="btn btn-danger" asp-action="Delete" asp-route-id="@Model.CategoryId"> *@
+@*         <i class="bi">Delete</i> *@
+@*     </a> *@
+@* </span> *@
