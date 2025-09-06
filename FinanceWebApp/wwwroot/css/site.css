@@ -29,3 +29,8 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+.readonly-select {
+  pointer-events: none;
+  background-color: #e9ecef; 
+}

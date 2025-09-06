@@ -38,14 +38,14 @@ document.addEventListener("DOMContentLoaded", function () {
     parentSelect.addEventListener("change", function () {
         const selected = parentSelect.options[parentSelect.selectedIndex];
         const parentType = selected.getAttribute("data-type");
-        console.log(parentType);
-        console.log(parentSelect.value);
         if (parentType != null){
             typeSelect.value = parentType;
-            typeSelect.disabled = true;
+            typeSelect.classList.add("readonly-select");
+            typeSelect.setAttribute("data-lock", "true");
         }
         else{
-            typeSelect.disabled = false;
+            typeSelect.classList.remove("readonly-select");
+            typeSelect.removeAttribute("data-lock");
             typeSelect.value = "";
         }
     });

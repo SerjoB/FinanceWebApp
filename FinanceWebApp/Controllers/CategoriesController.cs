@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using FinanceWebApp.Data.Service;
+using FinanceWebApp.Extensions;
 using FinanceWebApp.Models;
 using FinanceWebApp.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -26,23 +27,7 @@ public class CategoriesController: Controller
     public async Task<IActionResult> Create()
     {
         var categories = await _categoryService.GetAll();
-        var model = new CategoryCreateViewModel
-        {
-           CategoryTypes = Enum.GetValuesAsUnderlyingType<CategoryType>()
-            .Cast<CategoryType>()
-            .Select(t => new SelectListItem
-            {
-                Value = t.ToString(),
-                Text = t.ToString()
-            }),
-            ParentCategories = categories.Select(c => new ParentCategoryOption
-            {
-                Id = c.CategoryId,
-                Name = c.Name,
-                Type = c.Type
-            })
-        };
-
+        var model = CategoryMappingExtensions.NewCreateViewModel(categories);
         return View(model);
     }
     
@@ -63,20 +48,9 @@ public class CategoriesController: Controller
         }
         
         // If validation fails, reload dropdowns
-        model.CategoryTypes = Enum.GetValuesAsUnderlyingType<CategoryType>()
-            .Cast<CategoryType>()
-            .Select(t => new SelectListItem
-            {
-                Value = t.ToString(),
-                Text = t.ToString()
-            });
+        model.CategoryTypes = CategoryMappingExtensions.GetCategoriesTypes();
         var categories = await _categoryService.GetAll();
-        model. ParentCategories = categories.Select(c => new ParentCategoryOption
-        {
-            Id = c.CategoryId,
-            Name = c.Name,
-            Type = c.Type
-        });
+        model.ParentCategories = CategoryMappingExtensions.GetParentCategories(categories);
         return View(model);
     }
     
@@ -88,24 +62,7 @@ public class CategoriesController: Controller
         if(category == null)
             return NotFound();
         var descendantsIds = await _categoryService.GetAllDescendantsIdsAsync(category.CategoryId);
-        var model = new CategoryCreateViewModel
-        {
-            CategoryTypes = new List<SelectListItem>
-            {
-                new SelectListItem { Value = "Expense", Text = "Expense" },
-                new SelectListItem { Value = "Income", Text = "Income" }
-            },
-            ParentCategories = categories.Where(c => c.CategoryId != id && !descendantsIds.Contains(c.CategoryId)).Select(c => new ParentCategoryOption
-            {
-                Id = c.CategoryId,
-                Name = c.Name,
-                Type = c.Type
-            }),
-            Name = category.Name,
-            Type = category.Type,
-            ParentCategoryId = category.ParentCategoryId
-        };
-
+        var model = category.ToCreateViewModel(categories, descendantsIds);
         return View(model);
     }
     
@@ -136,23 +93,7 @@ public class CategoriesController: Controller
         if (currentCategory == null)
             return NotFound();
         var descendantsIds = await _categoryService.GetAllDescendantsIdsAsync(currentCategory.CategoryId);
-        var currentModel = new CategoryCreateViewModel
-        {
-            CategoryTypes = new List<SelectListItem>
-            {
-                new SelectListItem { Value = "Expense", Text = "Expense" },
-                new SelectListItem { Value = "Income", Text = "Income" }
-            },
-            ParentCategories = categories.Where(c => c.CategoryId != id && !descendantsIds.Contains(c.CategoryId)).Select(c => new ParentCategoryOption
-            {
-                Id = c.CategoryId,
-                Name = c.Name,
-                Type = c.Type
-            }),
-            Name = currentCategory.Name,
-            Type = currentCategory.Type
-        };
-
+        var currentModel = currentCategory.ToCreateViewModel(categories, descendantsIds);
         return View(currentModel);
     }
     
@@ -166,7 +107,7 @@ public class CategoriesController: Controller
     }
     
     // POST
-    [HttpPost, ActionName("Delete")]
+    [HttpPost, ActionName("Delete")]    //TODO: Currently if you delete child category that also has child, this child will be uncategorized. Question is to leave it like this or parent this childe up to hierarchy
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id, string mode)
     {
@@ -245,15 +186,7 @@ public class CategoriesController: Controller
             ModelState.AddModelError("Name", "Category name must be unique.");
         }
         if (!ModelState.IsValid) return null;
-        var category = new Category
-        {
-            Name = model.Name,
-            Type = model.Type,
-            ParentCategoryId = model.ParentCategoryId,
-            UserId = user!.Id
-        };
-       
-
+        var category = model.ToEntity(user.Id);
         var context = new ValidationContext(category);
         var results = new List<ValidationResult>();
         return Validator.TryValidateObject(category, context, results) ? category : null;
@@ -268,17 +201,7 @@ public class CategoriesController: Controller
         var roots = categories
             .Where(c => c.ParentCategoryId == 1)
             .ToList();
-        return roots.Select(c => MapToTree(c)).ToList();
+        return roots.Select(c => c.ToTreeViewModel()).ToList();
     }
 
-    private CategoryTreeViewModel MapToTree(Category category)
-    {
-        return new CategoryTreeViewModel
-        {
-            CategoryId = category.CategoryId,
-            Name = category.Name,
-            Type = category.Type,
-            Subcategories = category.Subcategories.Select(MapToTree).ToList()
-        };
-    }
 }
