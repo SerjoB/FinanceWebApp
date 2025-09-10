@@ -37,7 +37,7 @@ public class FinanceAppDbContext: IdentityDbContext<ApplicationUser, IdentityRol
             {
                 Name = "Uncategorized",
                 Type = "None",
-                CategoryId = 1,
+                Id = 1,
                 ParentCategoryId = 1,
                 UserId = 3  //TODO: Change it to admin ID or something
             });
@@ -55,7 +55,7 @@ public class FinanceAppDbContext: IdentityDbContext<ApplicationUser, IdentityRol
             .HasOne(t => t.Category)
             .WithMany(c => c.Transactions)
             .HasForeignKey(t => t.CategoryId)
-            .OnDelete(DeleteBehavior.SetNull); // if category deleted, transaction remains
+            .OnDelete(DeleteBehavior.SetNull); // TODO: we need to make it "Uncategorized" not null
 
         // ---------------------------
         // CategorizationRule -> ApplicationUser (many-to-1)

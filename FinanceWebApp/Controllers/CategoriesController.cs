@@ -26,7 +26,7 @@ public class CategoriesController: Controller
     //  GET
     public async Task<IActionResult> Create()
     {
-        var categories = await _categoryService.GetAll();
+        var categories = await _categoryService.GetAllAsync();
         var model = CategoryMappingExtensions.NewCreateViewModel(categories);
         return View(model);
     }
@@ -34,7 +34,7 @@ public class CategoriesController: Controller
     //POST
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(CategoryCreateViewModel model)
+    public async Task<IActionResult> Create(CategoryUpsertViewModel model)
     {
         var category =  await CategoryValidator(model);
         if (category != null)
@@ -49,7 +49,7 @@ public class CategoriesController: Controller
         
         // If validation fails, reload dropdowns
         model.CategoryTypes = CategoryMappingExtensions.GetCategoriesTypes();
-        var categories = await _categoryService.GetAll();
+        var categories = await _categoryService.GetAllAsync();
         model.ParentCategories = CategoryMappingExtensions.GetParentCategories(categories);
         return View(model);
     }
@@ -57,11 +57,11 @@ public class CategoriesController: Controller
     //  GET
     public async Task<IActionResult> Update(int id)
     {
-        var categories = await _categoryService.GetAll();
+        var categories = await _categoryService.GetAllAsync();
         var category = await _categoryService.GetCategoryByIdAsync(id, new QueryOptions<Category>());
         if(category == null)
             return NotFound();
-        var descendantsIds = await _categoryService.GetAllDescendantsIdsAsync(category.CategoryId);
+        var descendantsIds = await _categoryService.GetAllDescendantsIdsAsync(category.Id);
         var model = category.ToCreateViewModel(categories, descendantsIds);
         return View(model);
     }
@@ -69,7 +69,7 @@ public class CategoriesController: Controller
     //POST
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Update(CategoryCreateViewModel model, int id)
+    public async Task<IActionResult> Update(CategoryUpsertViewModel model, int id)
     {
         var user = await _categoryService.GetCurrentUserAsync();
         if (await _categoryService.CategoryExistsAsync(model.Name, user.Id, model.ParentCategoryId, id))
@@ -88,11 +88,11 @@ public class CategoriesController: Controller
         
         
         // If validation fails, reload dropdowns
-        var categories = await _categoryService.GetAll();
+        var categories = await _categoryService.GetAllAsync();
         var currentCategory = await _categoryService.GetCategoryByIdAsync(id, new QueryOptions<Category>());
         if (currentCategory == null)
             return NotFound();
-        var descendantsIds = await _categoryService.GetAllDescendantsIdsAsync(currentCategory.CategoryId);
+        var descendantsIds = await _categoryService.GetAllDescendantsIdsAsync(currentCategory.Id);
         var currentModel = currentCategory.ToCreateViewModel(categories, descendantsIds);
         return View(currentModel);
     }
@@ -178,7 +178,7 @@ public class CategoriesController: Controller
     }
     
 
-    private async Task<Category?> CategoryValidator(CategoryCreateViewModel model)  // TODO: should look into it. I am not sure i need it anymore. Possibly just change it for better look
+    private async Task<Category?> CategoryValidator(CategoryUpsertViewModel model)  // TODO: should look into it. I am not sure i need it anymore. Possibly just change it for better look
     {
         var user = await _categoryService.GetCurrentUserAsync();
         if (await _categoryService.CategoryExistsAsync(model.Name, user.Id, model.ParentCategoryId))
@@ -195,7 +195,7 @@ public class CategoriesController: Controller
     public async Task<List<CategoryTreeViewModel>> GetCategoryTreeAsync()
     {
         var categories =
-            await _categoryService.GetAllWithOptions(new QueryOptions<Category>() { Includes = "Subcategories" });
+            await _categoryService.GetAllWithOptionsAsync(new QueryOptions<Category>() { Includes = "Subcategories" });
 
         // Find root categories (those with no parent)
         var roots = categories

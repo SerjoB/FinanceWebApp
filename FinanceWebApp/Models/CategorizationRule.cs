@@ -2,9 +2,9 @@
 
 namespace FinanceWebApp.Models;
 
-public class CategorizationRule
+public class CategorizationRule: IUserOwnedEntity
 {
-    public int CategorizationRuleId { get; set; }
+    public int Id { get; set; }
     public int UserId { get; set; }
     public string MatchText { get; set; } = null!;
     public int CategoryId { get; set; }

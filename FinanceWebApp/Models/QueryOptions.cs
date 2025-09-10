@@ -2,7 +2,7 @@
 
 namespace FinanceWebApp.Models;
 
-public class QueryOptions<T> where T : class
+public class QueryOptions<T> where T : IUserOwnedEntity
 {
     public Expression<Func<T, bool>>? Filter { get; set; } = null;
     private string[] _includes = Array.Empty<string>();

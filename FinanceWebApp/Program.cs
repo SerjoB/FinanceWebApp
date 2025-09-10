@@ -1,5 +1,6 @@
 using FinanceWebApp.Data;
 using FinanceWebApp.Data.Service;
+using FinanceWebApp.Data.Service.Models;
 using FinanceWebApp.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,8 @@ builder.Services.AddDbContext<FinanceAppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
         .LogTo(Console.WriteLine, LogLevel.Information));
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ITransactionImportService, TransactionImportService>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
     {

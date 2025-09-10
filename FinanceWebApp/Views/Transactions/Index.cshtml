@@ -1,0 +1,23 @@
+﻿@{
+    ViewData["Title"] = "Transaction Import";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<form asp-action="Import" asp-controller="Transactions" method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label for="file" class="form-label">Choose file (CSV or XLSX)</label>
+        <input type="file" name="file" id="file" class="form-control"/>
+    </div>
+    <button type="submit" class="btn btn-primary">Upload</button>
+</form>

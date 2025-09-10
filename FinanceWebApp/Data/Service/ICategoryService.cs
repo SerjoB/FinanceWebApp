@@ -6,8 +6,8 @@ namespace FinanceWebApp.Data.Service;
 
 public interface ICategoryService
 {
-    Task<IEnumerable<Category>> GetAll();
-    Task<IEnumerable<Category>> GetAllWithOptions(QueryOptions<Category> options);
+    Task<IEnumerable<Category>> GetAllAsync();
+    Task<IEnumerable<Category>> GetAllWithOptionsAsync(QueryOptions<Category> options);
     
     Task<Category?> GetCategoryByIdAsync(int id, QueryOptions<Category> options);
     Task<Category?> GetCategoryAsync(QueryOptions<Category> options);
@@ -15,7 +15,7 @@ public interface ICategoryService
     Task<List<int>?> GetAllDescendantsIdsAsync(int categoryId);
 
     Task<ServiceResult> Add(Category category);
-    Task<ServiceResult> Update(CategoryCreateViewModel model, int categoryId);
+    Task<ServiceResult> Update(CategoryUpsertViewModel model, int categoryId);
     Task<ServiceResult> Delete(Category category);
 
     Task<ApplicationUser?> GetCurrentUserAsync();

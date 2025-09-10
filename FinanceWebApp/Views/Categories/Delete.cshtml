@@ -28,14 +28,14 @@
 {
     <p>This category has @Model.Subcategories.Count children. What do you want to do?</p>
     
-    <form asp-action="Delete" asp-route-id="@Model.CategoryId" method="post">
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
         <input type="hidden" name="mode" value="orphan" />
         <button type="submit" class="btn btn-warning">
             Delete only this category
         </button>
     </form>
 
-    <form asp-action="Delete" asp-route-id="@Model.CategoryId" method="post">
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
         <input type="hidden" name="mode" value="cascade" />
         <button type="submit" class="btn btn-danger">
             Delete category and subcategories
@@ -44,7 +44,7 @@
 }
 else
 {
-    <form asp-action="Delete" asp-route-id="@Model.CategoryId" method="post">
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
         <input type="hidden" name="mode" value="orphan" />
         <button type="submit" class="btn btn-danger">
             Delete category

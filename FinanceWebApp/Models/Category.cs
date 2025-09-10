@@ -2,10 +2,10 @@
 
 namespace FinanceWebApp.Models;
 
-public class Category
+public class Category:IUserOwnedEntity
 {
     [Range(0, int.MaxValue, ErrorMessage = "Id must be greater than 0")]
-    public int CategoryId { get; set; }
+    public int Id { get; set; }
     [Range(0, int.MaxValue, ErrorMessage = "Id must be greater than 0")]
     public int UserId { get; set; }
     [Required, StringLength(50)]

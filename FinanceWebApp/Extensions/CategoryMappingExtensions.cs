@@ -1,4 +1,5 @@
 ﻿using FinanceWebApp.Models;
+using FinanceWebApp.Models.Enums;
 using FinanceWebApp.ViewModels;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -10,7 +11,7 @@ public static class CategoryMappingExtensions
     {
         return new CategoryTreeViewModel
         {
-            CategoryId = category.CategoryId,
+            CategoryId = category.Id,
             Name = category.Name,
             Type = category.Type,
             Subcategories = category.Subcategories
@@ -19,7 +20,7 @@ public static class CategoryMappingExtensions
         };
     }
 
-    public static Category ToEntity(this CategoryCreateViewModel model, int userId)
+    public static Category ToEntity(this CategoryUpsertViewModel model, int userId)
     {
         return new Category
         {
@@ -30,21 +31,21 @@ public static class CategoryMappingExtensions
         };
     }
 
-    public static CategoryCreateViewModel ToCreateViewModel(this Category category, IEnumerable<Category> categories, List<int> descendantsIds)
+    public static CategoryUpsertViewModel ToCreateViewModel(this Category category, IEnumerable<Category> categories, List<int> descendantsIds)
     {
-        return new CategoryCreateViewModel
+        return new CategoryUpsertViewModel
         {
             Name = category.Name,
             Type = category.Type,
             ParentCategoryId = category.ParentCategoryId,
             CategoryTypes = GetCategoriesTypes(),
-            ParentCategories = GetParentCategoriesNoChildren(category.CategoryId,categories, descendantsIds)
+            ParentCategories = GetParentCategoriesNoChildren(category.Id,categories, descendantsIds)
         };
     }
 
-    public static CategoryCreateViewModel NewCreateViewModel(IEnumerable<Category> categories)
+    public static CategoryUpsertViewModel NewCreateViewModel(IEnumerable<Category> categories)
     {
-        return new CategoryCreateViewModel
+        return new CategoryUpsertViewModel
         {
             CategoryTypes = GetCategoriesTypes(),
             ParentCategories = GetParentCategories(categories)
@@ -55,7 +56,7 @@ public static class CategoryMappingExtensions
     {
         var parentCategories = categories.Select(c => new ParentCategoryOption
         {
-            Id = c.CategoryId,
+            Id = c.Id,
             Name = c.Name,
             Type = c.Type
         });
@@ -64,9 +65,9 @@ public static class CategoryMappingExtensions
     
     public static IEnumerable<ParentCategoryOption> GetParentCategoriesNoChildren(int categoryId,IEnumerable<Category> categories, List<int> descendantsIds)
     {
-        var parentCategories = categories.Where(c => c.CategoryId != categoryId && !descendantsIds.Contains(c.CategoryId)).Select(c => new ParentCategoryOption
+        var parentCategories = categories.Where(c => c.Id != categoryId && !descendantsIds.Contains(c.Id)).Select(c => new ParentCategoryOption
         {
-            Id = c.CategoryId,
+            Id = c.Id,
             Name = c.Name,
             Type = c.Type
         });

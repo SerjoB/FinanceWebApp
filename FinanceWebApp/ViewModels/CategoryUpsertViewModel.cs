@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace FinanceWebApp.ViewModels;
 
-public class CategoryCreateViewModel
+public class CategoryUpsertViewModel
 {
     public string Name { get; set; }
     public string Type { get; set; }
@@ -21,10 +21,4 @@ public class ParentCategoryOption
     public int Id { get; set; }
     public string Name { get; set; }
     public string Type { get; set; } // "Income" or "Expense"
-}
-
-public enum CategoryType
-{
-    Income,
-    Expense
 }
