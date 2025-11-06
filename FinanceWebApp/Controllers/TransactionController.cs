@@ -1,4 +1,6 @@
 ﻿using FinanceWebApp.Data.Service;
+using FinanceWebApp.Data.Service.Models;
+using FinanceWebApp.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,11 +9,14 @@ namespace FinanceWebApp.Controllers;
 [Authorize]
 public class TransactionsController : Controller
 {
-    ITransactionImportService _importService;
+    readonly ITransactionService _transactionService;
+    readonly ITransactionImportService _transactionImportService;
 
-    public TransactionsController(ITransactionImportService importService)
+    public TransactionsController(ITransactionService transactionService,
+        ITransactionImportService transactionImportService)
     {
-        _importService = importService;
+        _transactionService = transactionService;
+        _transactionImportService = transactionImportService;
     }
     
     [HttpGet]
@@ -29,9 +34,27 @@ public class TransactionsController : Controller
             return View("Index");
         }
         
-        var transactionModels = _importService.ImportAsync(file.OpenReadStream(), file.FileName);
+        var transactionModels = await _transactionImportService.ImportAsync(file.OpenReadStream(), file.FileName);
+        var viewModel = new TransactionImportPreviewViewModel
+        {
+            Transactions = transactionModels,
+            AllCategories = await _transactionImportService.GetAllCategorySelectItemsAsync()
+        };
 
-        return View("Index");
+        return View("Preview",viewModel);
+    }
+
+    
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmUpload([FromForm] TransactionImportPreviewViewModel vm)
+    {
+        var result = await _transactionImportService.SaveTransactionsAsync(vm.Transactions);
+        if (!result.Success)
+        {
+            TempData["Error"] = result.ErrorMessage;
+        }
+        return RedirectToAction(nameof(Index));
     }
 
 }

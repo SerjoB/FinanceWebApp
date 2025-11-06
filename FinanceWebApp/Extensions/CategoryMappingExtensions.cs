@@ -1,4 +1,5 @@
 ﻿using FinanceWebApp.Models;
+using FinanceWebApp.Models.DTOs;
 using FinanceWebApp.Models.Enums;
 using FinanceWebApp.ViewModels;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -51,6 +52,16 @@ public static class CategoryMappingExtensions
             ParentCategories = GetParentCategories(categories)
         };
     }
+    
+    public static CategorySelectItem ToSelectItem(this Category category)
+    {
+        return new CategorySelectItem
+        {
+            Name = category.Name,
+            Id = category.Id,
+            Type = category.Type
+        };
+    }
 
     public static IEnumerable<ParentCategoryOption> GetParentCategories(IEnumerable<Category> categories)
     {
@@ -76,8 +87,8 @@ public static class CategoryMappingExtensions
 
     public static IEnumerable<SelectListItem> GetCategoriesTypes()
     {
-        var categoryTypes = Enum.GetValuesAsUnderlyingType<CategoryType>()
-            .Cast<CategoryType>()
+        var categoryTypes = Enum.GetValuesAsUnderlyingType<TransactionType>()
+            .Cast<TransactionType>()
             .Select(t => new SelectListItem
             {
                 Value = t.ToString(),

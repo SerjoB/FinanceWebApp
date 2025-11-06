@@ -1,12 +1,16 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using FinanceWebApp.Configurations;
 using FinanceWebApp.Data.Service;
+using FinanceWebApp.Data.Service.Models;
 using FinanceWebApp.Extensions;
 using FinanceWebApp.Models;
+using FinanceWebApp.Models.DTOs;
 using FinanceWebApp.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace FinanceWebApp.Controllers;
 // TODO Show user friendly messages instead just errors
@@ -14,9 +18,12 @@ namespace FinanceWebApp.Controllers;
 public class CategoriesController: Controller
 {
     readonly ICategoryService _categoryService;
-    public CategoriesController(ICategoryService categoryService)
+    readonly CategorySettings _settings;
+    public CategoriesController(ICategoryService categoryService,
+        IOptions<CategorySettings> options)
     {
         _categoryService = categoryService;
+        _settings = options.Value;
     }
     public async Task<IActionResult> Index()
     {
@@ -97,6 +104,26 @@ public class CategoriesController: Controller
         return View(currentModel);
     }
     
+    // POST
+    [HttpPost]
+    [IgnoreAntiforgeryToken] 
+    public async Task<IActionResult> CreateFromBankCategory([FromBody] BankCategoryDTO request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.BankCategoryName))
+            return BadRequest("Invalid payload");
+        
+        var existing = await _categoryService.GetCategoryByNameAndTypeAsync(request.BankCategoryName, request.TransactionType);
+        if (existing != null)
+        {
+            return Ok(new { id = existing.Id, name = existing.Name, existed = true });
+        }
+
+        // 2) create new category
+        var created = await _categoryService.CreateCategoryFromDataAsync(request.BankCategoryName, request.TransactionType);
+
+        return Ok(new { id = created.Id, name = created.Name, existed = false });
+    }
+    
     //GET
     public async Task<IActionResult> Delete(int id)
     {
@@ -113,7 +140,7 @@ public class CategoriesController: Controller
     {
         var category = await _categoryService.GetCategoryByIdAsync(id, new QueryOptions<Category>() {Includes = "Subcategories"});
 
-        if (id == 1) 
+        if (id == _settings.UncategorizedCategoryId) 
         {
             TempData["ErrorMessage"] = "The 'Uncategorized' category cannot be deleted.";
             return RedirectToAction(nameof(Index));
@@ -127,7 +154,7 @@ public class CategoriesController: Controller
             {
                 foreach (var child in category.Subcategories)
                 {
-                    child.ParentCategoryId = 1; // or reassign to "Uncategorized"
+                    child.ParentCategoryId = _settings.UncategorizedCategoryId; // or reassign to "Uncategorized"
                 }
                 //
                 // category.Subcategories.Clear();
@@ -145,7 +172,7 @@ public class CategoriesController: Controller
         }
         return RedirectToAction(nameof(Index));
     }
-    
+   
     private async Task DeleteCategoryTree(Category category)
     {
         for (var i = 0; i < category.Subcategories.Count; i++)
@@ -199,7 +226,7 @@ public class CategoriesController: Controller
 
         // Find root categories (those with no parent)
         var roots = categories
-            .Where(c => c.ParentCategoryId == 1)
+            .Where(c => c.ParentCategoryId == _settings.UncategorizedCategoryId)
             .ToList();
         return roots.Select(c => c.ToTreeViewModel()).ToList();
     }

@@ -77,6 +77,7 @@ public class Repository<T> : IRepository<T> where T: class, IUserOwnedEntity
         return await query
             .FirstOrDefaultAsync(c => c.UserId == user.Id);
     }
+    
 
     public async Task<ServiceResult> Add(T entity)
     {
@@ -89,6 +90,25 @@ public class Repository<T> : IRepository<T> where T: class, IUserOwnedEntity
         catch (DbUpdateException ex)
         {
             Console.WriteLine(ex);
+            return ServiceResult.Fail("Database error occurred while creating entity.");
+        }
+        catch (Exception ex)
+        {
+            return ServiceResult.Fail($"Unexpected error: {ex.Message}");
+        }
+    }
+    
+    public async Task<ServiceResult> AddRange(List<T> entities)
+    {
+        try
+        {
+            await _dbSet.AddRangeAsync(entities);
+            await _context.SaveChangesAsync();
+            return ServiceResult.Ok();
+        }
+        catch (DbUpdateException ex)
+        {
+            Console.WriteLine(ex.InnerException?.Message);
             return ServiceResult.Fail("Database error occurred while creating entity.");
         }
         catch (Exception ex)

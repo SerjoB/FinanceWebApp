@@ -1,6 +1,6 @@
 ﻿namespace FinanceWebApp.Models.Enums;
 
-public enum CategoryType
+public enum TransactionType
 {
     Income,
     Expense

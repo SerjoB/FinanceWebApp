@@ -4,6 +4,9 @@ using FinanceWebApp.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using FinanceWebApp.Configurations;
+using FinanceWebApp.Models.Enums;
+using Microsoft.Extensions.Options;
 
 namespace FinanceWebApp.Data.Service;
 
@@ -11,12 +14,15 @@ public class CategoryService: ICategoryService
 {
     private readonly FinanceAppDbContext _context;
     private IRepository<Category> _repository;
+    private readonly CategorySettings _settings;
 
     public CategoryService(FinanceAppDbContext context,
-        IRepository<Category> repository)
+        IRepository<Category> repository,
+        IOptions<CategorySettings> options)
     {
         _context = context;
         _repository = repository;
+        _settings =  options.Value;
     }
     public async Task<IEnumerable<Category>> GetAllAsync()
     {
@@ -33,10 +39,16 @@ public class CategoryService: ICategoryService
     public async Task<Category?> GetCategoryByIdAsync(int id, QueryOptions<Category> options)
         => await _repository.GetEntityByIdAsync(id, options);
 
+    public async Task<Category> GetDefaultCategoryAsync()
+    {
+        return await _context.Categories.FirstOrDefaultAsync(c => c.Id == _settings.UncategorizedCategoryId)!;
+    }
+    
     public async Task<Category?> GetCategoryAsync(QueryOptions<Category> options)
         => await _repository.GetEntityAsync(options);
 
-
+    public async Task<Category?> GetCategoryByNameAndTypeAsync(string mame, string type)
+        => await _repository.GetEntityAsync(new QueryOptions<Category>(){Filter = c => c.Name == mame && c.Type == type});
     public async Task<List<int>?> GetAllDescendantsIdsAsync(int categoryId) // TODO: this doesn't work good with big hierarchies, so it must be replaced with a non-recursive query using a CTE or caching the tree in memory
     {
         List<int> result = new List<int>();
@@ -83,6 +95,18 @@ public class CategoryService: ICategoryService
     }
     public async Task<ApplicationUser?> GetCurrentUserAsync() 
         => await _repository.GetCurrentUserAsync();
-    
-    
+
+    public async Task<Category> CreateCategoryFromDataAsync(string name, string type)
+    {
+        var user = await GetCurrentUserAsync();
+        var category = new Category()
+        {
+            Name = name,
+            Type = type,
+            ParentCategoryId = _settings.UncategorizedCategoryId,
+            UserId = user.Id
+        };
+        await _repository.Add(category);
+        return category;
+    }
 }

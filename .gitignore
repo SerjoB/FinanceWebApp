@@ -1,5 +1,29 @@
+# Rider
+.idea/
+*.DotSettings.user
+
+# Build artifacts
 bin/
 obj/
-/packages/
-riderModule.iml
-/_ReSharper.Caches/
+
+# User-specific files
+.vs/
+*.user
+*.suo
+
+# Logs and temp files
+*.log
+*.tmp
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+# LibMan
+wwwroot/lib/
+
+# OS files
+.DS_Store
+Thumbs.db

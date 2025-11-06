@@ -1,3 +1,4 @@
+using FinanceWebApp.Configurations;
 using FinanceWebApp.Data;
 using FinanceWebApp.Data.Service;
 using FinanceWebApp.Data.Service.Models;
@@ -14,8 +15,10 @@ builder.Services.AddDbContext<FinanceAppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
         .LogTo(Console.WriteLine, LogLevel.Information));
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ITransactionImportService, TransactionImportService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.Configure<CategorySettings>(builder.Configuration.GetSection("CategorySettings"));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
     {
@@ -32,6 +35,11 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/Account/Login";
     options.LogoutPath = "/Account/Logout";
     options.AccessDeniedPath = "/Account/AccessDenied";
+});
+
+builder.Services.AddAntiforgery(options => 
+{
+    options.HeaderName = "X-CSRF-TOKEN";
 });
 
 var app = builder.Build();

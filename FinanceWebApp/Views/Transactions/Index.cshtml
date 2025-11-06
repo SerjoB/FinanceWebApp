@@ -14,10 +14,18 @@
     <div class="alert alert-success">@TempData["Success"]</div>
 }
 
-<form asp-action="Import" asp-controller="Transactions" method="post" enctype="multipart/form-data">
+<form asp-action="Upload" asp-controller="Transactions" method="post" enctype="multipart/form-data">
     <div class="mb-3">
         <label for="file" class="form-label">Choose file (CSV or XLSX)</label>
         <input type="file" name="file" id="file" class="form-control"/>
     </div>
     <button type="submit" class="btn btn-primary">Upload</button>
 </form>
+<div>
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+</div>

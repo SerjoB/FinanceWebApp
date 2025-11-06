@@ -9,6 +9,7 @@ public interface IRepository<T> where T: class, IUserOwnedEntity
     Task<T?> GetEntityByIdAsync(int id, QueryOptions<T> options);
     Task<T?> GetEntityAsync(QueryOptions<T> options);
     Task<ServiceResult> Add(T entity);
+    Task<ServiceResult> AddRange(List<T> entities);
     Task<ServiceResult> Update(T entity);
     Task<ServiceResult> Delete(T entity);
 }

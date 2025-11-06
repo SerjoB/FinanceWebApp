@@ -1,0 +1,93 @@
+﻿@model FinanceWebApp.ViewModels.TransactionImportPreviewViewModel
+
+<h2>Preview Imported Transactions</h2>
+
+@if (Model.Transactions.Any())
+{
+    <p>Total transactions: <strong>@Model.TotalCount</strong></p>
+    <div class="d-flex">
+        <p style="margin-right: 3px">Total Expenses: <strong>@Model.ExpensesTotalAmount</strong></p> @*TODO: CHANGE HARDCODED MARGIN*@
+        <p>Total Income: <strong>@Model.IncomeTotalAmount</strong></p>
+    </div>
+    
+
+    <form asp-action="ConfirmUpload" method="post">
+        <table class="table table-bordered table-striped">
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Description</th>
+                <th>Bank Category</th>
+                <th>Assigned Category</th>
+            </tr>
+            </thead>
+            <tbody  id="newCategoriesContainer">
+
+            @* @{ *@
+            @*     int j = 0; *@
+            @*     foreach (var m in Model.NewCategories) *@
+            @*     { *@
+            @*         <input asp-for="NewCategories[j].BankCategoryName" type="hidden"/> *@
+            @*         <input asp-for="NewCategories[j].TransactionType" type="hidden"/> *@
+            @*         j++; *@
+            @*     } *@
+            @* } *@
+            @for (int i = 0; i < Model.Transactions.Count; i++)
+            {
+                <tr data-transaction-id="@i">
+                    <td>
+                        @Model.Transactions[i].Date.ToShortDateString()
+                        <input type="hidden" asp-for=Transactions[i].Date/>
+                    </td>
+                    <td>
+                        @Model.Transactions[i].TransactionType
+                        <input type="hidden" asp-for=Transactions[i].TransactionType/>
+                    </td>
+                    <td>
+                        @Model.Transactions[i].Amount
+                        <input type="hidden" asp-for=Transactions[i].Amount/>
+                    </td>
+                    <td>
+                        @Model.Transactions[i].Description
+                        <input type="hidden" asp-for=Transactions[i].Description/>
+                    </td>
+                    <td class="bank-category-cell">
+                        @Model.Transactions[i].ParsedCategoryName
+                        <button type="button"
+                                class="btn btn-sm btn-primary assign-arrow btn-disabled"
+                                data-bankcat="@Model.Transactions[i].ParsedCategoryName"
+                                data-trxtype="@Model.Transactions[i].TransactionType"
+                                data-row="@i">
+                            →
+                        </button>
+                    </td>
+
+                    <td>
+                        <select name="Transactions[@i].CategoryId"
+                                class="form-control category-select"
+                                data-row="@i"
+                                data-parsed="@Model.Transactions[i].ParsedCategoryName"
+                                data-trxtype="@Model.Transactions[i].TransactionType">
+                            <option value="@Model.Transactions[i].CategoryId"  data-existed="true">@Model.Transactions[i].CategoryName</option>
+                            @foreach (var cat in Model.AllCategories
+                                          .Where(c => c.Id != @Model.Transactions[i].CategoryId &&
+                                                      (c.Type == Model.Transactions[i].TransactionType.ToString()  || c.Type == "None")))
+                            {
+                                <option value="@cat.Id" data-existed="true">@cat.Name</option>
+                            }
+                        </select>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-success">Confirm Import</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+}
+else
+{
+    <p>No transactions found in file.</p>
+}

@@ -66,3 +66,19 @@
 .subcategory-list.open {
     display: block;
 }
+
+.btn-disabled:disabled,
+.btn-disabled[disabled] {
+    background-color: #666666;
+    border-color: #666666;
+}
+
+.category-existing {
+    background-color: #d1ffd1; /* green */
+}
+.category-new {
+    background-color: #d1e0ff; /* blue */
+}
+.category-uncategorized {
+    background-color: #ffd1d1; /* red */
+}

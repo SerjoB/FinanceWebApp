@@ -1,36 +1,42 @@
 ﻿using System.Data;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using ExcelDataReader;
-using FinanceWebApp.Data;
-using FinanceWebApp.Data.Service;
+using FinanceWebApp.Configurations;
 using FinanceWebApp.Data.Service.Models;
+using FinanceWebApp.Extensions;
 using FinanceWebApp.Models;
+using FinanceWebApp.Models.DTOs;
 using FinanceWebApp.Models.Enums;
+using FinanceWebApp.Utilities;
+using Microsoft.Extensions.Options;
+
+namespace FinanceWebApp.Data.Service;
 
 public class TransactionImportService: ITransactionImportService
 {
-    private readonly FinanceAppDbContext _context;
-    IRepository<Transaction>  _repository;
-    IRepository<Category>  _categoryRepository;
+    ICategoryService _categoryService;
+    ITransactionService _transactionService;
+    private readonly CategorySettings _settings;
 
-    public TransactionImportService(FinanceAppDbContext context,
-        IRepository<Transaction> repository,
-        IRepository<Category> categoryRepository)
+    public TransactionImportService(ICategoryService categoryService,
+        ITransactionService  transactionService,
+        IOptions<CategorySettings> options)
     {
-        _context = context;
-        _repository = repository;
-        _categoryRepository = categoryRepository;
+        _categoryService = categoryService;
+        _transactionService = transactionService;
+        _settings = options.Value;
     }
     
-    public async Task<Transaction?> GetTransactionAsync(QueryOptions<Transaction> optionss)
-        => await _repository.GetEntityAsync(optionss);
+    
     public async Task<List<TransactionImportModel>> ImportAsync(Stream fileStream, string fileName)
     {
         var fileType = DetectFileType(fileName);
 
         return fileType switch
         {
-            FileType.Csv => await ParseCsvAsync(fileStream),
-            FileType.Excel => await ParseExcelAsync(fileStream),
+            FileType.Csv => ParserUtility.ParseCsv(fileStream),
+            FileType.Excel =>await AssignExistingCategories(ParserUtility.ParseExcel(fileStream)),
             _ => throw new NotSupportedException("Unsupported file type.")
         };
     }
@@ -45,91 +51,53 @@ public class TransactionImportService: ITransactionImportService
             _ => FileType.Unknown
         };
     }
-
-    private async Task<List<TransactionImportModel>> ParseCsvAsync(Stream fileStream) 
+    private async Task<List<TransactionImportModel>> AssignExistingCategories(List<TransactionImportModel> models)
     {
-        throw new NotImplementedException();
-    }
-
-    private async Task<List<TransactionImportModel>> ParseExcelAsync(Stream fileStream)
-    {
-        return await Task.Run(() =>
+        foreach (var model in models)
         {
-            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-
-            var transactions = new List<TransactionImportModel>();
-
-            using var reader = ExcelReaderFactory.CreateReader(fileStream);
-            var dataSet = reader.AsDataSet(new ExcelDataSetConfiguration
-            {
-                ConfigureDataTable = _ => new ExcelDataTableConfiguration
-                {
-                    UseHeaderRow = true
-                }
-            });
-
-            var table = dataSet.Tables[0]; // first worksheet
-
-            // Detect headers
-            int dateCol = -1, amountCol = -1, descCol = -1, catCol = -1;
-            for (int i = 0; i < table.Columns.Count; i++)
-            {
-                var colName = table.Columns[i].ColumnName.ToLowerInvariant();
-                if (colName.Contains("date")) dateCol = i;
-                if (colName.Contains("category")) dateCol = i;
-                if (colName.Contains("amount") || colName.Contains("sum")) amountCol = i;
-                if (colName.Contains("desc") || colName.Contains("memo") || colName.Contains("details")) descCol = i;
-            }
-
-            foreach (DataRow row in table.Rows)
-            {
-                if (dateCol == -1 || amountCol == -1) continue; // can't parse without essentials
-
-                var model = new TransactionImportModel
-                {
-                    Date = DateTime.TryParse(row[dateCol]?.ToString(), out var d) ? d : DateTime.MinValue,
-                    Amount = decimal.TryParse(row[amountCol]?.ToString(), out var a) ? a : 0,
-                    Description = descCol != -1 ? row[descCol]?.ToString() ?? "" : "",
-                    CategoryName = descCol != -1 ? row[descCol]?.ToString() ?? "" : ""
-                };
-
-                // Skip empty or garbage rows
-                if (model.Date == DateTime.MinValue && model.Amount == 0 &&
-                    string.IsNullOrWhiteSpace(model.Description))
-                    continue;
-
-                transactions.Add(model);
-            }
-
-            return transactions;
-        });
-    }
-    
-    public async Task SaveTransactionsAsync(List<TransactionImportModel> importedTransactions)  // TODO: it's not tested yet.
-                                                                                                // We need to add preview view and also relocate transaction creation before preview.
-                                                                                                // This should be called by clicking "Save" on preview page
-    {
-        if (importedTransactions == null || importedTransactions.Count == 0)
-            return;
-        List<Transaction> entities = new List<Transaction>();
-        for (int i = 0; i < importedTransactions.Count; i++)
-        {
-            var transaction = new Transaction();
-            transaction.Date = importedTransactions[i].Date;
-            transaction.Amount = importedTransactions[i].Amount;
-            transaction.Description = importedTransactions[i].Description;
-            transaction.CategoryId = await GetCategoryIdByNameAsync(importedTransactions[i].CategoryName);
-            entities.Add(transaction);
+            var cat = await _categoryService.GetCategoryByNameAndTypeAsync(model.ParsedCategoryName, model.TransactionType.ToString());
+            model.CategoryId = cat?.Id ?? _settings.UncategorizedCategoryId;
+            model.CategoryName = model.CategoryId == 1 ? _settings.UncategorizedCategoryName : model.ParsedCategoryName;
         }
-    
-        await _context.Transactions.AddRangeAsync(entities);
-        await _context.SaveChangesAsync();
+        return models;
     }
 
-    private async Task<int> GetCategoryIdByNameAsync(string categoryName)
+    public async Task<ServiceResult> SaveTransactionsAsync(List<TransactionImportModel> importedTransactions)
     {
-        var category = await _categoryRepository.GetEntityAsync(new QueryOptions<Category>() {Filter = c => c.Name == categoryName});
-        return category == null ? 1 : category.Id;
+        var transactions = await TransactionImportModelToEntityAsync(importedTransactions);
+        return await _transactionService.AddRange(transactions);
+    }
+    
+    private async Task<List<Transaction>> TransactionImportModelToEntityAsync(List<TransactionImportModel> importedTransactions)
+    {
+        List<Transaction> entities = [];
+        if (importedTransactions == null || importedTransactions.Count == 0)
+            return entities;
+
+        var user = await _transactionService.GetCurrentUserAsync();
+        entities = importedTransactions.Select(t => new Transaction
+        {
+            Date = DateTime.SpecifyKind(t.Date, DateTimeKind.Utc),
+            Amount = t.Amount,
+            Description = t.Description,
+            CategoryId = t.CategoryId,
+            UserId = user.Id,
+            Source = "XLSX"
+        }).ToList();
+
+        return entities;
     }
 
+    public async Task<List<CategorySelectItem>> GetAllCategorySelectItemsAsync()
+    {
+        var categories = await _categoryService.GetAllAsync();
+        var selectItems = new List<CategorySelectItem>();
+        var defaultCategory = await _categoryService.GetDefaultCategoryAsync();
+        foreach (var c in categories)
+        {
+            selectItems.Add(c.ToSelectItem());
+        }
+        selectItems.Add(defaultCategory.ToSelectItem());
+        return selectItems;
+    }
 }
